@@ -699,8 +699,12 @@ begin
 end;
 
 procedure TFormMain.EditPasFileChange(Sender: TObject);
+var s: string;
 begin
-  FProject.TargetPasFile := EditPasFile.Text;
+  s := EditPasFile.Text;
+  if ExtractFileExt(s).IsEmpty then
+  s := ChangeFileExt(s,'.pas');
+  FProject.TargetPasFile := s;
 end;
 
 procedure TFormMain.EditPrefixChange(Sender: TObject);

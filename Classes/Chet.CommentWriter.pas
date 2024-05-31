@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes,
-  System.SysUtils,System.StrUtils,
+  System.SysUtils,System.StrUtils,System.Character,
   {$IFDEF DEBUG}
   System.Generics.Collections,
   {$ENDIF}
@@ -105,6 +105,7 @@ type
     constructor Create(const ASourceWriter: TSourceWriter);
     destructor Destroy; override;
     procedure WriteComment(const ACursor: TCursor); override;
+    class function DropExtraWhitespaces(const AText: string): string; inline;
   end;
 
 type
@@ -253,10 +254,9 @@ procedure TParsedCommentWriter.Append(const AText: String);
 var
   S: String;
 begin
-  if (AText = '') then
-    Exit;
+  S := DropExtraWhitespaces(AText.Trim.Replace('*)', '* )'));
+  if S.IsEmpty then Exit;
 
-  S := AText.Replace('*)', '* )');
   if (FLastLineEmpty) then
     FBuilder.Append(FPrefix).Append(S.TrimLeft)
   else if (FNeedToTrimLeft) then
@@ -317,6 +317,29 @@ begin
   {$ENDIF}
   FBuilder.Free;
   inherited;
+end;
+
+class function TParsedCommentWriter.DropExtraWhitespaces(const AText: string): string;
+var
+  I,J,J1: Integer;
+begin
+  SetLength(Result, Length(AText));
+  J := 0;
+  J1 := 0;
+  for I := 1 to Length(AText) do
+  begin
+    if AText[I].IsWhiteSpace then
+      Inc(J1)
+    else
+      J1 := 0;
+
+    if J1 < 2 then
+      Result[I-J] := AText[I]
+    else
+      Inc(J);
+  end;
+  if J > 0 then
+    SetLength(Result,Length(AText) - J);
 end;
 
 procedure TParsedCommentWriter.EndSummaryOrRemarks;
@@ -531,7 +554,7 @@ begin
               AppendLine;
             end;
           end;
-          if (Kind = TCommentKind.VerbatimLine) then
+          if (Kind = TCommentKind.VerbatimLine) and (AComment.ChildCount > 0)  then
             Append(AComment.VerbatimLineText)
           else
             WriteChildren(AComment);
